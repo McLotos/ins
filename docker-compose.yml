@@ -1,0 +1,51 @@
+version: '3.9'
+networks:
+  frontend:
+    ipam: 
+      driver: default
+      config:
+        - subnet: ${FRONTEND_SUBNET}/${FRONTEND_MASK}
+  backend:
+    ipam:
+      driver: default
+      config:
+        - subnet: ${BACKEND_SUBNET}/${BACKEND_MASK}
+services:
+  rabbit:
+    extends:
+      file: ${RABBIT_FILE}
+      service: ${RABBIT_CN}
+  front:
+    extends:
+      file: ${FRONT_FILE}
+      service: ${FRONT_CN}
+    volumes:
+      - ${VOLUME_DIST_SOURCE}:${VOLUME_DIST_TARGET}
+  authenticator:
+    extends:
+      file: ${AUTHENTICATOR_FILE}
+      service: ${AUTHENTICATOR_CN}
+    depends_on:
+      - rabbit
+      - gateway
+  gateway:
+    extends:
+      file: ${GATEWAY_FILE}
+      service: ${GATEWAY_CN}
+    volumes:
+      - ${VOLUME_DIST_SOURCE}:${VOLUME_DIST_TARGET}
+    depends_on:
+      - front
+      - rabbit
+  db:
+    image: mariadb
+    container_name: db
+    restart: always
+    profiles:
+      - services
+      - all
+      - db
+    environment:
+      - MARIADB_ROOT_PASSWORD
+    volumes:
+      - ${VOLUME_MYSQL_HOST}:${VOLUME_MYSQL_CONTAINER}
